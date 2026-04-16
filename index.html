@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI智能地图助手 - 腾讯位置服务开发者征文大赛</title>
+    <link rel="stylesheet" href="css/style.css">
+    <!-- 腾讯地图 JSAPI GL - 加载 service 和 search 模块 -->
+    <script src="https://map.qq.com/api/gljs?v=1.exp&key=TXABZ-FY2LJ-3QMFX-XGB5X-6Y4LV-RSFE6&libraries=service,search"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- 左侧：对话界面 -->
+        <div class="chat-panel">
+            <div class="chat-header">
+                <h1>🤖 AI智能地图助手</h1>
+                <p class="subtitle">自然语言交互 | 智能地点搜索 | 路线规划</p>
+            </div>
+
+            <div class="config-panel">
+                <details>
+                    <summary>⚙️ API配置（首次使用请配置）</summary>
+                    <div class="config-form">
+                        <div class="form-group">
+                            <label>腾讯地图API Key:</label>
+                            <input type="text" id="tencentMapKey" placeholder="请输入腾讯地图API密钥">
+                            <button onclick="saveMapKey()">保存</button>
+                        </div>
+                        <div class="form-group">
+                            <label>AI服务选择:</label>
+                            <select id="aiProvider" onchange="updateAIConfig()">
+                                <option value="local">本地规则引擎（免费）</option>
+                                <option value="siliconflow">硅基流动 API</option>
+                                <option value="qwen">通义千问 API</option>
+                                <option value="zhipu">智谱 GLM API</option>
+                                <option value="custom">自定义API</option>
+                            </select>
+                        </div>
+                        <div id="aiConfigFields" style="display:none;">
+                            <input type="text" id="aiApiKey" placeholder="AI API密钥">
+                            <input type="text" id="aiApiUrl" placeholder="API地址（可选）">
+                        </div>
+                        <button onclick="saveAIConfig()">保存AI配置</button>
+                    </div>
+                </details>
+            </div>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message assistant">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>您好！我是AI智能地图助手，可以帮您：</p>
+                        <ul>
+                            <li>🔍 搜索附近的餐厅、景点、商店等</li>
+                            <li>🗺️ 规划出行路线和导航</li>
+                            <li>📍 查找特定地点的位置</li>
+                            <li>💡 推荐最佳汇合点</li>
+                        </ul>
+                        <p>请用自然语言描述您的需求，例如：</p>
+                        <p class="example">"帮我找北京西站附近的咖啡馆"</p>
+                        <p class="example">"从天安门到故宫怎么走？"</p>
+                        <p class="example">"推荐几个人少的公园"</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-area">
+                <div class="input-container">
+                    <textarea id="userInput" placeholder="输入您的需求，按回车发送..." rows="3"></textarea>
+                    <button onclick="sendMessage()" class="send-btn">
+                        <span>发送</span>
+                        <svg viewBox="0 0 24 24" width="20" height="20">
+                            <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="quick-actions">
+                    <button onclick="quickSearch('附近的美食')">🍜 美食</button>
+                    <button onclick="quickSearch('附近的景点')">🏞️ 景点</button>
+                    <button onclick="quickSearch('附近的停车场')">🅿️ 停车场</button>
+                    <button onclick="clearChat()">🗑️ 清空对话</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 右侧：地图展示 -->
+        <div class="map-panel">
+            <div id="mapContainer" class="map-container"></div>
+            <div class="map-controls">
+                <button onclick="toggleMapType()" class="control-btn" title="切换地图类型">
+                    🗺️
+                </button>
+                <button onclick="getCurrentLocation()" class="control-btn" title="定位当前位置">
+                    📍
+                </button>
+                <button onclick="clearMarkers()" class="control-btn" title="清除标记">
+                    ❌
+                </button>
+            </div>
+            <div id="routeInfo" class="route-info" style="display:none;">
+                <h3>路线信息</h3>
+                <div id="routeDetails"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="spinner"></div>
+        <p>AI正在思考中...</p>
+    </div>
+
+    <!-- 脚本 -->
+    <script src="js/map-service.js"></script>
+    <script src="js/ai-service.js"></script>
+    <script src="js/preset-config.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>

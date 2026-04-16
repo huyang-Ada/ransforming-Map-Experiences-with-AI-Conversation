@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试工具 - 腾讯地图WebService API</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-box {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #333;
+            margin-top: 0;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            border-left: 4px solid #4CAF50;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            border-left-color: #f44336;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 腾讯地图WebService API测试工具</h1>
+    <p>用于测试JSONP方式调用腾讯地图API是否正常工作</p>
+
+    <div class="test-box">
+        <h2>API Key配置</h2>
+        <input type="text" id="apiKey" value="TXABZ-FY2LJ-3QMFX-XGB5X-6Y4LV-RSFE6" placeholder="腾讯地图API Key">
+    </div>
+
+    <div class="test-box">
+        <h2>📍 地理编码测试（地址→坐标）</h2>
+        <input type="text" id="geocodeAddress" value="天安门, 北京" placeholder="输入地址">
+        <button onclick="testGeocode()">测试地理编码</button>
+        <div id="geocodeResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>🔍 POI搜索测试</h2>
+        <input type="text" id="searchKeyword" value="咖啡馆" placeholder="搜索关键词">
+        <input type="text" id="searchRegion" value="北京" placeholder="区域">
+        <button onclick="testSearch()">测试搜索</button>
+        <div id="searchResult" class="result" style="display:none;"></div>
+    </div>
+
+    <div class="test-box">
+        <h2>🚗 路线规划测试</h2>
+        <input type="text" id="routeFrom" value="天安门, 北京" placeholder="起点地址">
+        <input type="text" id="routeTo" value="故宫, 北京" placeholder="终点地址">
+        <button onclick="testRoute()">测试路线规划</button>
+        <div id="routeResult" class="result" style="display:none;"></div>
+    </div>
+
+    <script>
+        // JSONP请求函数
+        function jsonpRequest(url) {
+            return new Promise((resolve, reject) => {
+                const callbackName = 'jsonp_callback_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5);
+                const jsonpUrl = url + '&output=jsonp&callback=' + callbackName;
+
+                console.log('JSONP URL:', jsonpUrl);
+
+                const script = document.createElement('script');
+                script.src = jsonpUrl;
+
+                window[callbackName] = function(data) {
+                    resolve(data);
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                };
+
+                script.onerror = function() {
+                    reject(new Error('JSONP请求失败'));
+                    delete window[callbackName];
+                    document.body.removeChild(script);
+                };
+
+                setTimeout(() => {
+                    if (window[callbackName]) {
+                        reject(new Error('请求超时'));
+                        delete window[callbackName];
+                        document.body.removeChild(script);
+                    }
+                }, 10000);
+
+                document.body.appendChild(script);
+            });
+        }
+
+        // 显示结果
+        function showResult(elementId, data, isError = false) {
+            const element = document.getElementById(elementId);
+            element.style.display = 'block';
+            element.className = isError ? 'result error' : 'result';
+            element.textContent = JSON.stringify(data, null, 2);
+        }
+
+        // 测试地理编码
+        async function testGeocode() {
+            const apiKey = document.getElementById('apiKey').value;
+            const address = document.getElementById('geocodeAddress').value;
+
+            const url = `https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent(address)}&key=${apiKey}`;
+
+            try {
+                const data = await jsonpRequest(url);
+                showResult('geocodeResult', data);
+
+                if (data.status === 0 && data.result.location) {
+                    console.log('✅ 地理编码成功:', data.result.location);
+                } else {
+                    console.error('❌ 地理编码失败:', data.message);
+                }
+            } catch (error) {
+                showResult('geocodeResult', { error: error.message }, true);
+            }
+        }
+
+        // 测试搜索
+        async function testSearch() {
+            const apiKey = document.getElementById('apiKey').value;
+            const keyword = document.getElementById('searchKeyword').value;
+            const region = document.getElementById('searchRegion').value;
+
+            const url = `https://apis.map.qq.com/ws/place/v1/search?keyword=${encodeURIComponent(keyword)}&boundary=region(${encodeURIComponent(region)},0)&page_size=10&page_index=1&key=${apiKey}`;
+
+            try {
+                const data = await jsonpRequest(url);
+                showResult('searchResult', data);
+
+                if (data.status === 0 && data.data) {
+                    console.log('✅ 搜索成功，找到', data.data.length, '个结果');
+                } else {
+                    console.error('❌ 搜索失败:', data.message);
+                }
+            } catch (error) {
+                showResult('searchResult', { error: error.message }, true);
+            }
+        }
+
+        // 测试路线规划
+        async function testRoute() {
+            const apiKey = document.getElementById('apiKey').value;
+            const fromAddress = document.getElementById('routeFrom').value;
+            const toAddress = document.getElementById('routeTo').value;
+
+            try {
+                // 先地理编码起点和终点
+                const fromUrl = `https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent(fromAddress)}&key=${apiKey}`;
+                const toUrl = `https://apis.map.qq.com/ws/geocoder/v1/?address=${encodeURIComponent(toAddress)}&key=${apiKey}`;
+
+                const fromData = await jsonpRequest(fromUrl);
+                const toData = await jsonpRequest(toUrl);
+
+                if (fromData.status !== 0 || toData.status !== 0) {
+                    showResult('routeResult', { error: '地理编码失败' }, true);
+                    return;
+                }
+
+                const from = fromData.result.location;
+                const to = toData.result.location;
+
+                // 路线规划
+                const routeUrl = `https://apis.map.qq.com/ws/direction/v1/driving/?from=${from.lat},${from.lng}&to=${to.lat},${to.lng}&key=${apiKey}`;
+                const routeData = await jsonpRequest(routeUrl);
+
+                showResult('routeResult', routeData);
+
+                if (routeData.status === 0) {
+                    const route = routeData.result.routes[0];
+                    console.log('✅ 路线规划成功:', route.distance + '米', route.duration + '秒');
+                } else {
+                    console.error('❌ 路线规划失败:', routeData.message);
+                }
+            } catch (error) {
+                showResult('routeResult', { error: error.message }, true);
+            }
+        }
+
+        console.log('🧪 API测试工具已加载，点击按钮测试各项功能');
+    </script>
+</body>
+</html>
